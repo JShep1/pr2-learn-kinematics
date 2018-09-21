@@ -1,0 +1,139 @@
+#ifndef LEARN_KIN_
+#define LEARN_KIN_
+
+#include <ros/ros.h>
+//#include <tf/tf.h>
+#include <geometry_msgs/Pose.h>
+//#include <tf/transform_listener.h>
+//#include <eigen_conversions/eigen_msg.h>
+//gripper actions
+//#include <pr2_gripper_sensor_msgs/PR2GripperFindContactAction.h>
+//robot joint states
+//#include <sensor_msgs/JointState.h>
+//#include <pr2_controllers_msgs/JointTrajectoryAction.h>
+//hand actions
+//MoveIt!
+#include <moveit/robot_model/robot_model.h>
+#include <moveit/robot_state/robot_state.h>
+#include <moveit/robot_state/joint_state_group.h>
+#include <moveit/robot_model_loader/robot_model_loader.h>
+
+//include the gripper action commands
+#include <pr2_controllers_msgs/Pr2GripperCommandAction.h>
+#include <pr2_gripper_sensor_msgs/PR2GripperFindContactAction.h>
+#include <pr2_gripper_sensor_msgs/PR2GripperForceServoAction.h>
+#include <pr2_gripper_sensor_msgs/PR2GripperSlipServoAction.h>
+#include <pr2_gripper_sensor_msgs/PR2GripperEventDetectorAction.h>
+#include <actionlib/client/simple_action_client.h>
+#include <unistd.h>
+
+//to get the eef pose
+#include <moveit/planning_interface/planning_interface.h>
+#include <moveit/move_group_interface/move_group.h>
+
+//#include <moveit/trajectory_processing/iterative_time_parameterization.h>
+/*
+typedef actionlib::SimpleActionClient<pr2_gripper_sensor_msgs::PR2GripperFindContactAction> ContactClient;
+typedef actionlib::SimpleActionClient<pr2_gripper_sensor_msgs::PR2GripperForceServoAction> ForceClient;
+typedef actionlib::SimpleActionClient<pr2_controllers_msgs::Pr2GripperCommandAction> GripperClient;
+
+typedef actionlib::SimpleActionClient<pr2_controllers_msgs::JointTrajectoryAction> TrajClient;
+*/
+
+
+typedef actionlib::SimpleActionClient<pr2_gripper_sensor_msgs::PR2GripperSlipServoAction> SlipClient;
+
+// Our Action interface type, provided as a typedef for convenience
+typedef actionlib::SimpleActionClient<pr2_gripper_sensor_msgs::PR2GripperFindContactAction> ContactClient;
+
+typedef actionlib::SimpleActionClient<pr2_gripper_sensor_msgs::PR2GripperEventDetectorAction> EventDetectorClient;
+// Our Action interface type, provided as a typedef for convenience                   
+typedef actionlib::SimpleActionClient<pr2_controllers_msgs::Pr2GripperCommandAction> GripperClient;
+// Our Action interface type, provided as a typedef for convenience
+typedef actionlib::SimpleActionClient<pr2_gripper_sensor_msgs::PR2GripperForceServoAction> ForceClient;
+
+GripperClient* gripper_clientr_;
+GripperClient* gripper_clientl_;
+
+class LearnKinematics{
+public:
+  LearnKinematics();
+  ~LearnKinematics();
+  void initialize();
+  geometry_msgs::PoseStamped get_eef_pose();
+  geometry_msgs::Pose eef_pose;
+  void try_action(double displacement, moveit::planning_interface::MoveGroup* group);
+  void try_action(geometry_msgs::Pose target_pose, moveit::planning_interface::MoveGroup* group);
+  void setLeftHand(bool setVal );
+  bool open(GripperClient* gripper_client_, double position, double max_effort);
+  double get_width(GripperClient* gripper_client_, double eps);
+
+
+
+  
+private:
+  /*
+  GripperClient* gripper_client_;
+  ContactClient* contact_client_;
+  ForceClient* force_client_;
+  TrajClient* traj_client_;
+  std::string targetFrame_;
+  std::string sourceFrame_;
+  */
+  bool r_hand_enabled;
+  bool l_hand_enabled;
+
+  //ros::Subscriber joint_states_sub_;
+  //sensor_msgs::JointState::ConstPtr robot_state_;
+  //bool got_robot_state;
+  
+  
+  /* Load the robot model */
+  robot_model_loader::RobotModelLoader robot_model_loader_;//robot_description;
+  robot_model::RobotModelPtr robot_model_;
+  robot_state::RobotStatePtr kinematic_state_;
+  robot_state::JointStateGroup* joint_state_group_;
+  
+  //pr2_controllers_msgs::JointTrajectoryGoal eef_goal;
+  
+  //void jointStatesCallback(const sensor_msgs::JointStateConstPtr& msg);
+  geometry_msgs::Pose compute_test_pose(double displacement);
+  //bool getIK(geometry_msgs::Pose eef_pose);
+  
+  //helper functions for debug
+  void print_transform(tf::Transform trans, std::string info);
+  void print_pose(geometry_msgs::Pose pose, std::string info);
+};
+
+class Gripper{
+private:
+  GripperClient* gripper_client_;  
+  ContactClient* contact_client_;
+  ForceClient* force_client_;
+  SlipClient* slip_client_;
+  EventDetectorClient* event_detector_client_;
+
+public:
+  //Action client initialization
+  Gripper();
+
+  ~Gripper();
+
+  //Open the gripper
+  void open();
+
+
+  //Hold somethign with a constant force in the gripper
+  void hold( double holdForce);
+
+
+  //Find two contacts and go into force control mode
+  void findTwoContacts();
+ 
+  void slipServo();
+ 
+  //move into event_detector mode to detect object contact
+  void place();
+  
+};
+#endif 
